@@ -27,23 +27,33 @@ size = len(maph)
 def main():
     pg.init()
     screen = pg.display.set_mode((640, 480))
-    pg.mouse.set_visible(False)  # Oculta el cursor del mouse
-    pg.event.set_grab(True)  # Asegura que el mouse permanezca dentro de la ventana
-
+    pg.mouse.set_visible(False)
+    pg.event.set_grab(True)
 
     running = True
     clock = pg.time.Clock()
 
+    # music from the game
+    pg.mixer.init()
+    # Cargar la música desde un archivo (reemplaza 'nombre_de_tu_cancion.mp3' con el nombre de tu archivo de música)
+    pg.mixer.music.load('audio/music.mp3')
+    # Configurar el volumen de la música (opcional)
+    pg.mixer.music.set_volume(0.5)  # 0.0 (sin sonido) a 1.0 (volumen máximo)
+    pg.mixer.music.play(-1)  # Reproducir la música en bucle continuo (-1)
+
+    # walking sound
+    walk_sound = pg.mixer.Sound('audio/step.wav')
+    walk_sound.set_volume(0.2)
+
     # Posición inicial del jugador en el centro del laberinto
     posx, posy, rot = size // 2, size // 2, 0
-    frame = np.random.uniform(0, 1, (hres, vres*2, 3))
+    frame = np.random.uniform(0, 1, (hres, vres * 2, 3))
 
     # Texturas
     sky = pg.image.load("img/sky.jpg")
-    sky = pg.surfarray.array3d(pg.transform.scale(sky, (360, vres*2)))
-
-    floor = pg.surfarray.array3d(pg.image.load("img/floor.jpg"))/255
-    wall = pg.surfarray.array3d(pg.image.load("img/wall.jpg"))/255
+    sky = pg.surfarray.array3d(pg.transform.scale(sky, (360, vres * 2)))
+    floor = pg.surfarray.array3d(pg.image.load("img/floor.jpg")) / 255
+    wall = pg.surfarray.array3d(pg.image.load("img/wall.jpg")) / 255
 
     while running:
         for event in pg.event.get():
@@ -51,22 +61,19 @@ def main():
                 running = False
 
         force_quit(pg.key.get_pressed())
-
-        # Captura el movimiento del mouse
         mouse_x, _ = pg.mouse.get_rel()
 
-        # Actualiza la posición y rotación del jugador
-        posx, posy, rot = movement(posx, posy, rot, pg.key.get_pressed(), clock.tick(), mouse_x)
+        posx, posy, rot = movement(posx, posy, rot, pg.key.get_pressed(), clock.tick(), mouse_x, walk_sound)
 
-        # Renderiza el frame
         frame = new_frame(posx, posy, rot, frame, sky, floor, wall)
 
-        surface = pg.surfarray.make_surface(frame*255)
+        surface = pg.surfarray.make_surface(frame * 255)
         surface = pg.transform.scale(surface, (640, 480))
-        fps = int(clock.get_fps())
-        pg.display.set_caption(f"FPS: {fps}")
+
+        draw_minimap(surface, maph, posx, posy)
 
         screen.blit(surface, (0, 0))
+        pg.display.set_caption(f"FPS: {clock.get_fps():.2f}")
         pg.display.update()
 
     pg.quit()
@@ -114,7 +121,7 @@ def is_wall(x, y):
         return True
     return maph[int(x)][int(y)] == 1
 
-def movement(posx, posy, rot, keys, et, mouse_x):
+def movement(posx, posy, rot, keys, et, mouse_x, walk_sound):
     movfactor = 0.005
     rot_speed = 0.002  # Ajusta esta velocidad según sea necesario
     wall_buffer = 0.9  # Distancia mínima a las paredes
@@ -122,7 +129,7 @@ def movement(posx, posy, rot, keys, et, mouse_x):
     # Rotación con el mouse
     rot += mouse_x * rot_speed * et
 
-    # Movimiento con teclado
+   # Movimiento con teclado
     if keys[pg.K_a] or keys[pg.K_LEFT]:
         rot -= et * movfactor
     if keys[pg.K_d] or keys[pg.K_RIGHT]: 
@@ -130,9 +137,13 @@ def movement(posx, posy, rot, keys, et, mouse_x):
     if keys[pg.K_w] or keys[pg.K_UP]:
         new_x = posx + movfactor * et * np.cos(rot)
         new_y = posy + movfactor * et * np.sin(rot)
+        if new_x != posx or new_y != posy:
+            walk_sound.play()  # Reproducir el sonido cuando el jugador camine
     elif keys[pg.K_s] or keys[pg.K_DOWN]:
         new_x = posx - movfactor * et * np.cos(rot)
         new_y = posy - movfactor * et * np.sin(rot)
+        if new_x != posx or new_y != posy:
+            walk_sound.play()  # Reproducir el sonido cuando el jugador camine
     else:
         new_x, new_y = posx, posy
 
@@ -155,12 +166,12 @@ def force_quit(keys):
 
 def draw_minimap(screen, maph, posx, posy):
     minimap_scale = 5  # Factor de escala para el minimapa
-    minimap_size = size * minimap_scale
+    minimap_size = len(maph) * minimap_scale  # Usar el tamaño de maph para determinar el tamaño del minimapa
     minimap_surf = pg.Surface((minimap_size, minimap_size))
 
     # Dibuja las paredes y espacios abiertos
-    for y in range(size):
-        for x in range(size):
+    for y in range(len(maph)):
+        for x in range(len(maph[y])):
             rect = (x * minimap_scale, y * minimap_scale, minimap_scale, minimap_scale)
             if maph[y][x] == 1:
                 pg.draw.rect(minimap_surf, (255, 255, 255), rect)  # Paredes blancas
@@ -173,6 +184,7 @@ def draw_minimap(screen, maph, posx, posy):
 
     # Dibuja el minimapa en la pantalla
     screen.blit(minimap_surf, (10, 10))  # Posición del minimapa en la pantalla
+
 
     
 
