@@ -2,25 +2,36 @@ import pygame as pg
 import numpy as np
 from numba import njit
 
-## Constans
-hres = 120 # Horizontal resolution
-vres = 100 # Vertical resolution /2 ,     # halfvres its vres
-mod =  hres/60 # scaling factor (60° FOV)
+## Constants
+hres = 120  # Horizontal resolution
+vres = 100  # Vertical resolution / 2 ,     # halfvres its vres
+mod = hres / 60  # scaling factor (60° FOV)
 
-# map
-# Mapa del laberinto (1: pared, 0: espacio abierto)
+# Map
+# Mapa del laberinto (1: pared, 0: espacio abierto, 2: columna de color verde)
 maph = np.array([
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 0, 0, 0, 0, 0, 1, 1],
-    [1, 1, 0, 0, 0, 0, 0, 1, 1],
-    [1, 1, 0, 0, 0, 0, 0, 1, 1],
-    [1, 1, 0, 0, 0, 0, 0, 1, 1],
-    [1, 1, 0, 0, 0, 0, 0, 1, 1],
-    [1, 1, 0, 0, 0, 0, 0, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+    [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],  
+    [1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1],  
+    [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1],  
+    [1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1],  
+    [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1],  
+    [1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1],  
+    [1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1],  
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1],  
+    [1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1],  
+    [1, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1],  
+    [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1],  
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],  
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ], dtype=np.int64)
+
+
+
+
+
 # Tamaño del mapa
 size = len(maph)
 
@@ -33,15 +44,15 @@ def main():
     running = True
     clock = pg.time.Clock()
 
-    # music from the game
+    # Music from the game
     pg.mixer.init()
     # Cargar la música desde un archivo (reemplaza 'nombre_de_tu_cancion.mp3' con el nombre de tu archivo de música)
     pg.mixer.music.load('audio/music.mp3')
     # Configurar el volumen de la música (opcional)
-    pg.mixer.music.set_volume(0.5)  # 0.0 (sin sonido) a 1.0 (volumen máximo)
+    pg.mixer.music.set_volume(0.4)  # 0.0 (sin sonido) a 1.0 (volumen máximo)
     pg.mixer.music.play(-1)  # Reproducir la música en bucle continuo (-1)
 
-    # walking sound
+    # Walking sound
     walk_sound = pg.mixer.Sound('audio/step.wav')
     walk_sound.set_volume(0.2)
 
@@ -49,7 +60,7 @@ def main():
     posx, posy, rot = size // 2, size // 2, 0
     frame = np.random.uniform(0, 1, (hres, vres * 2, 3))
 
-    # Texturas
+    # Texturesw
     sky = pg.image.load("img/sky.jpg")
     sky = pg.surfarray.array3d(pg.transform.scale(sky, (360, vres * 2)))
     floor = pg.surfarray.array3d(pg.image.load("img/floor.jpg")) / 255
@@ -67,6 +78,11 @@ def main():
 
         frame = new_frame(posx, posy, rot, frame, sky, floor, wall)
 
+        # Verificar si el jugador ha llegado a la columna de color verde
+        if maph[int(posx)][int(posy)] == 2:
+            print("¡Has llegado a la columna de color verde! Fin del juego.")
+            running = False
+
         surface = pg.surfarray.make_surface(frame * 255)
         surface = pg.transform.scale(surface, (640, 480))
 
@@ -78,13 +94,11 @@ def main():
 
     pg.quit()
 
-
-
-# render logic in one function, called new frame
+# Render logic in one function, called new frame
 @njit()
 def new_frame(posx, posy, rot, frame, sky, floor, wall):
     for i in range(hres):
-        roti = rot + np.deg2rad(i/mod - 30)
+        roti = rot + np.deg2rad(i / mod - 30)
         sin, cos = np.sin(roti), np.cos(roti)
 
         # Ajuste en la proyección de rayos
@@ -114,17 +128,16 @@ def new_frame(posx, posy, rot, frame, sky, floor, wall):
                 frame[i][vres * 2 - j - 1] = shade * floor[xx][yy]
     return frame
 
-
 def is_wall(x, y):
-    """ Verifica si la posición (x, y) es una pared. """
     if x < 0 or x >= size or y < 0 or y >= size:
         return True
+    # Permitir que el jugador pase a través de la columna de color verde (valor 2)
     return maph[int(x)][int(y)] == 1
 
 def movement(posx, posy, rot, keys, et, mouse_x, walk_sound):
     movfactor = 0.005
     rot_speed = 0.002  # Ajusta esta velocidad según sea necesario
-    wall_buffer = 0.9  # Distancia mínima a las paredes
+    wall_buffer = 0.0  # Distancia mínima a las paredes
 
     # Rotación con el mouse
     rot += mouse_x * rot_speed * et
@@ -156,8 +169,6 @@ def movement(posx, posy, rot, keys, et, mouse_x, walk_sound):
 
     return posx, posy, rot
 
-
-
 #if esc is pressed, quit the game
 def force_quit(keys):
     if keys[pg.K_ESCAPE]:
@@ -165,28 +176,32 @@ def force_quit(keys):
         quit()
 
 def draw_minimap(screen, maph, posx, posy):
+    map_height, map_width = maph.shape  # Obtenemos las dimensiones del mapa
     minimap_scale = 5  # Factor de escala para el minimapa
-    minimap_size = len(maph) * minimap_scale  # Usar el tamaño de maph para determinar el tamaño del minimapa
-    minimap_surf = pg.Surface((minimap_size, minimap_size))
 
-    # Dibuja las paredes y espacios abiertos
-    for y in range(len(maph)):
-        for x in range(len(maph[y])):
+    minimap_width = map_width * minimap_scale
+    minimap_height = map_height * minimap_scale
+
+    minimap_surf = pg.Surface((minimap_width, minimap_height))
+
+    # Dibuja las paredes, la columna de color verde y espacios abiertos en el minimapa
+    for y in range(map_height):
+        for x in range(map_width):
             rect = (x * minimap_scale, y * minimap_scale, minimap_scale, minimap_scale)
             if maph[y][x] == 1:
                 pg.draw.rect(minimap_surf, (255, 255, 255), rect)  # Paredes blancas
+            elif maph[y][x] == 2:
+                pg.draw.rect(minimap_surf, (0, 255, 0), rect)  # Columna de color verde
             else:
                 pg.draw.rect(minimap_surf, (0, 0, 0), rect)  # Espacio abierto negro
 
-    # Dibuja la posición del jugador
-    player_pos = (int(posx * minimap_scale), int(posy * minimap_scale))
-    pg.draw.circle(minimap_surf, (255, 0, 0), player_pos, minimap_scale // 2)  # Jugador en rojo
+    # Dibuja la posición del jugador como un círculo rojo centrado en el minimapa
+    player_radius = minimap_scale // 2
+    player_center = (int(posy * minimap_scale), int(posx * minimap_scale))  # Intercambiamos x y y
+    pg.draw.circle(minimap_surf, (255, 0, 0), player_center, player_radius)  # Jugador en rojo
 
     # Dibuja el minimapa en la pantalla
     screen.blit(minimap_surf, (10, 10))  # Posición del minimapa en la pantalla
-
-
-    
 
 if __name__ == "__main__":
     main()
